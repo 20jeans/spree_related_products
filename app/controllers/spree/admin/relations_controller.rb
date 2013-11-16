@@ -1,7 +1,7 @@
 module Spree
   module Admin
     class RelationsController < BaseController
-      before_filter :load_data, :only => [:create, :destroy]
+      before_filter :load_data, only: [:create, :destroy]
 
       respond_to :js, :html
 
@@ -23,11 +23,11 @@ module Spree
 
       def update_positions
         params[:positions].each do |id, index|
-          model_class.where(:id => id).update_all(:position => index)
+          model_class.where(id: id).update_all(position: index)
         end
     
         respond_to do |format|
-          format.js  { render :text => 'Ok' }
+          format.js{ render text: 'Ok' }
         end
       end
 
@@ -41,7 +41,8 @@ module Spree
       private
 
       def relation_params
-        params.require(:relation).permit(:related_to, :relation_type, :relatable, :related_to_id, :discount_amount, :relation_type_id, :related_to_type, :position)
+        fields = [:related_to, :relation_type, :relatable, :related_to_id, :discount_amount, :relation_type_id, :related_to_type, :position]
+        params.require(:relation).permit(*fields)
       end
 
       def load_data
