@@ -1,9 +1,9 @@
 Spree::Product.class_eval do
-  has_many :relations, :as => :relatable, :order => :position
+  has_many :relations, as: :relatable, -> { order: :position }
 
   # Returns all the Spree::RelationType's which apply_to this class.
   def self.relation_types
-    Spree::RelationType.find_all_by_applies_to(self.to_s, :order => :name)
+    Spree::RelationType.find_all_by_applies_to(self.to_s, order: :name)
   end
 
   # The AREL Relations that will be used to filter the resultant items.
@@ -57,7 +57,6 @@ Spree::Product.class_eval do
       # from another extension when both are used in a project.
       nil
     end
-     
   end
 
   # Returns all the Products that are related to this record for the given RelationType.
@@ -69,13 +68,13 @@ Spree::Product.class_eval do
     related_ids = relations.where(:relation_type_id => relation_type.id).order(:position).pluck(:related_to_id)
 
     # Construct a query for all these records
-    result = self.class.where(:id => related_ids)
+    result = self.class.where(id: related_ids)
 
     # Merge in the relation_filter if it's available
     result = result.merge(self.class.relation_filter.scoped) if relation_filter
 
     # make sure results are in same order as related_ids array  (position order) 
-    result = related_ids.collect {|id| result.detect {|x| x.id == id} } if result.present?
+    result = related_ids.map{|id| result.detect{|x| x.id == id} } if result.present?
     
     result
   end
@@ -86,5 +85,4 @@ Spree::Product.class_eval do
   def relation_filter
     self.class.relation_filter
   end
-
 end
