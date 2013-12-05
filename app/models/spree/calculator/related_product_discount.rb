@@ -20,14 +20,10 @@ module Spree
         discount_applies_to = relations.map{|rel| rel.related_to.master }
 
         order.line_items.each do |li|
-          if discount_applies_to.include? li.variant
+          if discount_applies_to.include?(li.variant)
             discount = relations.detect{|rel| rel.related_to.master == li.variant }.discount_amount
 
-            total += if li.quantity < line_item.quantity
-              (discount * li.quantity)
-            else
-              (discount * line_item.quantity)
-            end
+            total += discount * [li.quantity, line_item.quantity].min
           end
         end
 
@@ -38,7 +34,7 @@ module Spree
     end
 
     def eligible?(order)
-      order.line_items.any? do |line_item| 
+      order.line_items.any? do |line_item|
         Spree::Relation.product_discount(line_item.variant.product).exists?
       end
     end

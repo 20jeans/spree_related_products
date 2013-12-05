@@ -3,7 +3,7 @@ Spree::Product.class_eval do
 
   # Returns all the Spree::RelationType's which apply_to this class.
   def self.relation_types
-    Spree::RelationType.find_all_by_applies_to(self.to_s, order: :name)
+    Spree::RelationType.where(applies_to: self.to_s).order(:name).all
   end
 
   # The AREL Relations that will be used to filter the resultant items.
@@ -22,7 +22,7 @@ Spree::Product.class_eval do
   # This could also feasibly be overridden to sort the result in a
   # particular order, or restrict the number of items returned.
   def self.relation_filter
-    where('spree_products.deleted_at' => nil).where('spree_products.available_on IS NOT NULL').where('spree_products.available_on <= ?', Time.now)
+    where('spree_products.deleted_at IS NULL AND spree_products.available_on IS NOT NULL AND spree_products.available_on <= ?', Time.now)
   end
 
   # Decides if there is a relevant Spree::RelationType related to this class
@@ -33,7 +33,7 @@ Spree::Product.class_eval do
   def method_missing(method, *args)
     # Fix for Ruby 1.9
     raise NoMethodError if method == :to_ary
-    
+
     relation_type = find_relation_type(method)
     if relation_type.nil?
       super
@@ -50,7 +50,8 @@ Spree::Product.class_eval do
 
   def find_relation_type(relation_name)
     begin
-      self.class.relation_types.detect { |rt| rt.name.downcase.gsub(" ", "_").pluralize == relation_name.to_s.downcase }
+      namename = relation_name.to_s.downcase
+      self.class.relation_types.detect{|rt| rt.name.downcase.gsub(" ", "_").pluralize == name }
     rescue ActiveRecord::StatementInvalid => error
       # This exception is throw if the relation_types table does not exist. 
       # And this method is getting invoked during the execution of a migration 
@@ -65,10 +66,10 @@ Spree::Product.class_eval do
   # them using +Product.relation_filter+ to remove unwanted items.
   def relations_for_relation_type(relation_type)
     # Find all the relations that belong to us for this RelationType, ordered by position
-    related_ids = relations.where(:relation_type_id => relation_type.id).order(:position).pluck(:related_to_id)
+    related_ids = relations.where(relation_type_id: relation_type.id).order(:position).pluck(:related_to_id)
 
     # Construct a query for all these records
-    result = self.class.where(id: related_ids)
+    result = self.class.where(id: related_ids).all
 
     # Merge in the relation_filter if it's available
     result = result.merge(self.class.relation_filter.scoped) if relation_filter
